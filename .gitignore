@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+detected_images/
+detected_videos/
+motion_detection_log.txt
 # C extensions
 *.so
 
