@@ -1,17 +1,18 @@
 import os
 import time
 import cv2
-from utils import list_cameras, load_encondings, record_video, trigger_alarm, register_log, detect_faces
+from utils import list_cameras, load_encondings, preview_camera, record_video, trigger_alarm, register_log, detect_faces
 from datetime import datetime
 import argparse
 import threading
+from config import detected_faces_dir, detected_images_dir, detected_videos_dir, motion_log_detection_log, face_detection_log
 
 
 
 def main():
-    os.makedirs("detected_images", exist_ok=True)
-    os.makedirs("detected_videos", exist_ok=True)
-    os.makedirs("detected_faces", exist_ok=True)
+    os.makedirs(detected_images_dir, exist_ok=True)
+    os.makedirs(detected_videos_dir, exist_ok=True)
+    os.makedirs(detected_faces_dir, exist_ok=True)
 
     parser = argparse.ArgumentParser(description="Motion detection script")
     parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only", "face-only"],)
@@ -52,65 +53,67 @@ def main():
     
     time.sleep(2)
 
+    preview_camera(cap)
+
     known_face_encodings = [] 
     known_face_names = [] 
     load_encondings(known_face_encodings, known_face_names)
     
     
     print("🎥 Monitoring... Press CTRL + C to exit.")
-    while cap.isOpened():
-        ret, frame1 = cap.read()
-        ret2, frame2 = cap.read()
-        if not ret or not ret2:
-            print("Error capturing initial frames.")
-            exit(1)
-        
-
-        diff = cv2.absdiff(frame1, frame2)
-        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-        dilated = cv2.dilate(thresh, None, iterations=3)
-        contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        motion_detected = False
-
-        for contour in contours:
-            if cv2.contourArea(contour) < 1000:
-                continue
-
-            motion_detected = True
-            break
-
-        if motion_detected:
-            now = datetime.now()
-            print(f"\033[91mMotion detected at {now.strftime('%H:%M:%S')}!\033[0m")
-            if not args.silent:
-                trigger_alarm()
+    try:
+        while cap.isOpened():
 
 
-            timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-            register_log()
+            ret, frame1 = cap.read()
+            ret2, frame2 = cap.read()
+
+            if not ret or not ret2:
+                print("Error capturing initial frames.")
+                exit(1)
             
+            diff = cv2.absdiff(frame1, frame2)
+            gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+            blur = cv2.GaussianBlur(gray, (5, 5), 0)
+            _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+            dilated = cv2.dilate(thresh, None, iterations=3)
+            contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            if args.modes is None or "image-only" in args.modes:
-                image_name = f"detected_images/capture_{timestamp_str}.jpg"
-                cv2.imwrite(image_name, frame1)
-            
-            if args.modes is None or "video-only" in args.modes:
-                video_name = f"detected_videos/detection_{timestamp_str}.avi"
-                record_video(cap, video_name)
+            motion_detected = False
 
-            if args.modes is None or "face-only" in args.modes:
-                t = threading.Thread(target=detect_faces, args=(frame2, known_face_encodings, known_face_names,))
-                t.start()
-    
-        
+            for contour in contours:
+                if cv2.contourArea(contour) < 1000:
+                    continue
+
+                motion_detected = True
+                break
+
+            if motion_detected:
+                now = datetime.now()
+                print(f"\033[91mMotion detected at {now.strftime('%H:%M:%S')}!\033[0m")
+                if not args.silent:
+                    trigger_alarm()
+
+                timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+                register_log()
+                
+                if args.modes is None or "image-only" in args.modes:
+                    image_name = f"{detected_images_dir}/capture_{timestamp_str}.jpg"
+                    cv2.imwrite(image_name, frame1)
+                
+                if args.modes is None or "video-only" in args.modes:
+                    video_name = f"{detected_videos_dir}/detection_{timestamp_str}.avi"
+                    record_video(cap, video_name)
+
+                if args.modes is None or "face-only" in args.modes:
+                    t = threading.Thread(target=detect_faces, args=(frame2, known_face_encodings, known_face_names,))
+                    t.start()
+
             time.sleep(3) 
-    
-
-    cap.release()
-    cv2.destroyAllWindows()
+                
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

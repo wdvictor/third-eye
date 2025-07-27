@@ -3,7 +3,7 @@ import cv2
 import os
 from datetime import datetime
 import face_recognition
-
+from config import detected_faces_dir, face_detection_log,  motion_log_detection_log
 
 
 def list_cameras(max_test=3):
@@ -24,7 +24,7 @@ def trigger_alarm(times=3, interval=0.3):
         time.sleep(interval)
 
 
-def register_log(filename="motion_detection_log.txt", content="Motion detected"):
+def register_log(filename=motion_log_detection_log, content="Motion detected"):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(filename, "a") as f:
         f.write(f"[{now} ] {content}\n")
@@ -61,25 +61,24 @@ def detect_faces(frame, known_face_encodings, known_face_names):
             first_match_index = matches.index(True)
             name = known_face_names[first_match_index]
 
-            register_log(filename='face_detection_log.txt', content=f'{name} detected!')
+            register_log(filename=face_detection_log, content=f'{name} detected!')
         else:
             
             timestamp = int(time.time())
             filename = f"face_{timestamp}.jpg"
-            filepath = os.path.join('detected_faces', filename)
+            filepath = os.path.join(detected_faces_dir, filename)
             
             cv2.imwrite(filepath, frame)
 
-            register_log(filename='face_detection_log.txt', content=f'{filename} detected!')
+            register_log(filename=face_detection_log, content=f'{filename} detected!')
             known_face_encodings.append(face_encoding)
             known_face_names.append(f"person_{timestamp}")
 
 
 def load_encondings(known_face_encodings, known_face_names):
-    dir = "detected_faces"
-    for filename in os.listdir(dir):
+    for filename in os.listdir(detected_faces_dir):
         if filename.endswith((".jpg", ".png", ".jpeg")):
-            image_path = os.path.join(dir, filename)
+            image_path = os.path.join(detected_faces_dir, filename)
             image = face_recognition.load_image_file(image_path)
             encodings = face_recognition.face_encodings(image, model="large")
 
@@ -88,4 +87,17 @@ def load_encondings(known_face_encodings, known_face_names):
                 known_face_names.append(filename)
 
     return known_face_encodings, known_face_names
+
+
+def preview_camera(cap):
+    while True:
+        _, frame = cap.read()
+        
+        cv2.imshow("Webcam Preview - Press 'q' to continue", frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+            break
+
+
 
