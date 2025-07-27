@@ -2,7 +2,6 @@ import time
 import cv2
 import os
 from datetime import datetime
-import face_recognition_models
 import face_recognition
 import numpy as np
 
@@ -52,11 +51,11 @@ def record_video(cap, video_name, duration_seconds=5, fps=20.0):
 
 
 def detect_faces(frame, known_face_encodings, known_face_names):
-
+    
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     face_locations = face_recognition.face_locations(rgb_frame, model="cnn")
     face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-
+    
     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
         matches = face_recognition.compare_faces(known_face_encodings, face_encoding, 0.6)
         if True in matches:

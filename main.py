@@ -4,6 +4,7 @@ import cv2
 from utils import list_cameras, load_encondings, record_video, trigger_alarm, register_log, detect_faces
 from datetime import datetime
 import argparse
+import threading
 
 
 
@@ -55,9 +56,6 @@ def main():
     known_face_names = [] 
     load_encondings(known_face_encodings, known_face_names)
     
-
-    
-    
     
     print("🎥 Monitoring... Press CTRL + C to exit.")
     while cap.isOpened():
@@ -88,27 +86,25 @@ def main():
         if motion_detected:
             now = datetime.now()
             print(f"\033[91mMotion detected at {now.strftime('%H:%M:%S')}!\033[0m")
-
-            
-            if args.modes is None or "face-only" in args.modes:
-                detect_faces(frame2, known_face_encodings, known_face_names)
+            if not args.silent:
+                trigger_alarm()
 
 
             timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+            register_log()
             
 
             if args.modes is None or "image-only" in args.modes:
                 image_name = f"detected_images/capture_{timestamp_str}.jpg"
                 cv2.imwrite(image_name, frame1)
-
-            
-            if not args.silent:
-                trigger_alarm()
-            register_log()
             
             if args.modes is None or "video-only" in args.modes:
                 video_name = f"detected_videos/detection_{timestamp_str}.avi"
                 record_video(cap, video_name)
+
+            if args.modes is None or "face-only" in args.modes:
+                t = threading.Thread(target=detect_faces, args=(frame2, known_face_encodings, known_face_names,))
+                t.start()
     
         
             time.sleep(3) 
