@@ -5,6 +5,8 @@ __pycache__/
 .vscode/
 detected_images/
 detected_videos/
+detected_faces/
+face_detection_log.txt
 motion_detection_log.txt
 # C extensions
 *.so

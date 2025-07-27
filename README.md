@@ -25,6 +25,24 @@ The system is designed for **surveillance and monitoring** and can be extended f
 - Telegram notifications
 - shadow-detection
 
+## 🛠️ System Requirements
+
+Before installing Python libraries, make sure the following system dependencies are installed:
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install sox 
+sudo apt install libsox-fmt-all
+sudo apt install libasound2-dev
+sudo apt install build-essential cmake
+sudo apt install libopenblas-dev liblapack-dev
+sudo apt install libx11-dev libgtk-3-dev
+sudo apt install python3-dev
+
+```
+
 ## 📦 Installation
 
 ```bash
@@ -33,6 +51,7 @@ cd third-eye
 python3 -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
+pip3 install git+https://github.com/ageitgey/face_recognition_models
 ```
 
 ## 📷 Camera Setup
@@ -51,14 +70,14 @@ python main.py [OPTIONS]
 - **`--modes`**  
   Specifies which functionalities to execute. Supports multiple values.  
   If omitted, all modes will be enabled by default.  
-  Valid options currently include: **`video-only`**, **`image-only`**.
+  Valid options currently include: **`video-only`**, **`image-only`**, **`face-only`**.
 
 - **`--silent`**  
   Disables the alarm sound when passed.
 
 
-                           |
-                 
+                    
+            
 
 Example:
 
@@ -98,6 +117,8 @@ This warning typically means that the `play` command (from the `sox` package) is
    ```bash
    sudo apt install sox libsox-fmt-all
    ```
+
+
 
 ## 📄 License
 

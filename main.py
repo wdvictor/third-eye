@@ -1,7 +1,7 @@
 import os
 import time
 import cv2
-from utils import list_cameras, record_video, trigger_alarm, register_log
+from utils import list_cameras, load_encondings, record_video, trigger_alarm, register_log, detect_faces
 from datetime import datetime
 import argparse
 
@@ -10,9 +10,10 @@ import argparse
 def main():
     os.makedirs("detected_images", exist_ok=True)
     os.makedirs("detected_videos", exist_ok=True)
+    os.makedirs("detected_faces", exist_ok=True)
 
     parser = argparse.ArgumentParser(description="Motion detection script")
-    parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only"])
+    parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only", "face-only"],)
     parser.add_argument("--silent", action="store_true")
 
 
@@ -50,6 +51,9 @@ def main():
     
     time.sleep(2)
 
+    known_face_encodings = [] 
+    known_face_names = [] 
+    load_encondings(known_face_encodings, known_face_names)
     
 
     
@@ -63,6 +67,8 @@ def main():
             print("Error capturing initial frames.")
             exit(1)
         
+
+
         diff = cv2.absdiff(frame1, frame2)
         gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -83,8 +89,13 @@ def main():
             now = datetime.now()
             print(f"\033[91mMotion detected at {now.strftime('%H:%M:%S')}!\033[0m")
 
+            
+            if args.modes is None or "face-only" in args.modes:
+                detect_faces(frame2, known_face_encodings, known_face_names)
+
+
             timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-            video_name = f"detected_videos/detection_{timestamp_str}.avi"
+            
 
             if args.modes is None or "image-only" in args.modes:
                 image_name = f"detected_images/capture_{timestamp_str}.jpg"
@@ -96,6 +107,7 @@ def main():
             register_log()
             
             if args.modes is None or "video-only" in args.modes:
+                video_name = f"detected_videos/detection_{timestamp_str}.avi"
                 record_video(cap, video_name)
     
         
