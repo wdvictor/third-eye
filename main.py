@@ -66,7 +66,6 @@ def main():
             exit(1)
         
 
-
         diff = cv2.absdiff(frame1, frame2)
         gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -108,14 +107,7 @@ def main():
     
         
             time.sleep(3) 
-
-            frame1 = frame2
-            ret, frame2 = cap.read()
-
-        if not ret:
-            break
-
-        
+    
 
     cap.release()
     cv2.destroyAllWindows()

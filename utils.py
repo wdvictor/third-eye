@@ -20,7 +20,7 @@ def list_cameras(max_test=3):
 
 def trigger_alarm(times=3, interval=0.3):
     for _ in range(times):
-        os.system("play -n synth 0.1 sine 5000")
+        os.system("play -n synth 0.1 sine 5000 > /dev/null 2>&1")
         time.sleep(interval)
 
 
