@@ -8,6 +8,7 @@ detected_videos/
 detected_faces/
 face_detection_log.txt
 motion_detection_log.txt
+cache.json
 # C extensions
 *.so
 
