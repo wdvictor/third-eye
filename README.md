@@ -1,3 +1,9 @@
+
+<p align="center">
+  <img src="third-eye-logo.png" alt="Logo Third Eye" width="300"/>
+</p>
+
+
 # 🎥 Motion Detection System
 
 This Python project uses a webcam to detect movement, triggering a real-time alert system that:
@@ -6,6 +12,7 @@ This Python project uses a webcam to detect movement, triggering a real-time ale
 - 🎞️ **Records videos** of detected motion
 - 🖼️ **Captures images**
 - 📝 **Logs events** with timestamp
+- 🧑 **Face detection and recogniton**
 
 The system is designed for **surveillance and monitoring** and can be extended for more advanced computer vision tasks.
 
@@ -19,10 +26,7 @@ The system is designed for **surveillance and monitoring** and can be extended f
 
 ### 🔮 Upcoming Features
 
-- Face and vehicle detection
-- License plate recognition
-- Web-based monitoring dashboard
-- Telegram notifications
+- Face detection
 - shadow-detection
 
 ## 🛠️ System Requirements

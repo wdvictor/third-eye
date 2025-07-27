@@ -3,7 +3,6 @@ import cv2
 import os
 from datetime import datetime
 import face_recognition
-import numpy as np
 
 
 
@@ -18,10 +17,12 @@ def list_cameras(max_test=3):
             cap.release()
     return available
 
+
 def trigger_alarm(times=3, interval=0.3):
     for _ in range(times):
         os.system("play -n synth 0.1 sine 5000")
         time.sleep(interval)
+
 
 def register_log(filename="motion_detection_log.txt", content="Motion detected"):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -48,8 +49,6 @@ def record_video(cap, video_name, duration_seconds=5, fps=20.0):
     out.release()
     
 
-
-
 def detect_faces(frame, known_face_encodings, known_face_names):
     
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -74,7 +73,6 @@ def detect_faces(frame, known_face_encodings, known_face_names):
             register_log(filename='face_detection_log.txt', content=f'{filename} detected!')
             known_face_encodings.append(face_encoding)
             known_face_names.append(f"person_{timestamp}")
-            
 
 
 def load_encondings(known_face_encodings, known_face_names):
