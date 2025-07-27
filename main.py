@@ -1,7 +1,7 @@
 import os
 import time
 import cv2
-from utils import list_cameras, trigger_alarm, register_log
+from utils import list_cameras, record_video, trigger_alarm, register_log
 from datetime import datetime
 import argparse
 
@@ -12,13 +12,10 @@ def main():
     os.makedirs("detected_videos", exist_ok=True)
 
     parser = argparse.ArgumentParser(description="Motion detection script")
-    parser.add_argument(
-        '--mode',
-        type=str,
-        default=None,
-        help='''The operation mode. Possible values are: [detection] (There will be other values soon).'''
-        '''If the parameter is not provided, all modes will be executed'''
-    )
+    parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only"])
+    parser.add_argument("--silent", action="store_true")
+
+
     args = parser.parse_args()
 
     
@@ -47,7 +44,6 @@ def main():
             print("Invalid input. Using first camera by default.")
             selected_camera = cameras[0]
 
-    print(f"Using camera index: {selected_camera}")
 
 
     cap = cv2.VideoCapture(selected_camera)
@@ -58,78 +54,60 @@ def main():
 
     
     
-    if(args.mode is None or args.mode == "detection"):
-        print("🎥 Monitoring... Press ESC to exit.")
-        while cap.isOpened():
-            ret, frame1 = cap.read()
-            ret2, frame2 = cap.read()
-            if not ret or not ret2:
-                print("Error capturing initial frames.")
-                exit(1)
-            
-            diff = cv2.absdiff(frame1, frame2)
-            gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-            blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-            dilated = cv2.dilate(thresh, None, iterations=3)
-            contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    print("🎥 Monitoring... Press CTRL + C to exit.")
+    while cap.isOpened():
+        ret, frame1 = cap.read()
+        ret2, frame2 = cap.read()
+        if not ret or not ret2:
+            print("Error capturing initial frames.")
+            exit(1)
+        
+        diff = cv2.absdiff(frame1, frame2)
+        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+        dilated = cv2.dilate(thresh, None, iterations=3)
+        contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-            motion_detected = False
+        motion_detected = False
 
-            for contour in contours:
-                if cv2.contourArea(contour) < 1000:
-                    
-                    
-                    continue
-                motion_detected = True
-                break
+        for contour in contours:
+            if cv2.contourArea(contour) < 1000:
+                continue
 
-            if motion_detected:
-                now = datetime.now()
-                timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+            motion_detected = True
+            break
+
+        if motion_detected:
+            now = datetime.now()
+            print(f"\033[91mMotion detected at {now.strftime('%H:%M:%S')}!\033[0m")
+
+            timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+            video_name = f"detected_videos/detection_{timestamp_str}.avi"
+
+            if args.modes is None or "image-only" in args.modes:
                 image_name = f"detected_images/capture_{timestamp_str}.jpg"
-                video_name = f"detected_videos/detection_{timestamp_str}.avi"
-
                 cv2.imwrite(image_name, frame1)
 
-                print(f"Motion detected at {now.strftime('%H:%M:%S')}!")
+            
+            if not args.silent:
                 trigger_alarm()
-                register_log(f"Motion detected - Image: {image_name}, Video: {video_name}")
+            register_log()
+            
+            if args.modes is None or "video-only" in args.modes:
+                record_video(cap, video_name)
+    
+        
+            time.sleep(3) 
 
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                fps = 20.0
-                frame_size = (int(cap.get(3)), int(cap.get(4)))
-                out = cv2.VideoWriter(video_name, fourcc, fps, frame_size)
+            frame1 = frame2
+            ret, frame2 = cap.read()
 
-                frames_recorded = 0
-                max_frames = int(fps * 5)  
+        if not ret:
+            break
 
-                while frames_recorded < max_frames:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    out.write(frame)
-                    frames_recorded += 1
-                    
-                
-                   
-                if cv2.waitKey(1) == 27:  
-                    break
-
-                out.release()
-                
-
-                time.sleep(3) 
-
-                frame1 = frame2
-                ret, frame2 = cap.read()
-
-            if not ret:
-                break
-
-            if cv2.waitKey(1) == 27:  
-                print("🛑 Monitoring stopped.")
-                break
+        
 
     cap.release()
     cv2.destroyAllWindows()
