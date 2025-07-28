@@ -2,23 +2,23 @@ import json
 import os
 import time
 import cv2
-from utils import list_cameras, load_encondings, preview_camera, record_video, trigger_alarm, register_log, detect_faces
+from utils  import Utils
 from datetime import datetime
 import argparse
 import threading
-from config import detected_faces_dir, detected_images_dir, detected_videos_dir, json_cache_file
 
 
 
 def main():
-    os.makedirs(detected_images_dir, exist_ok=True)
-    os.makedirs(detected_videos_dir, exist_ok=True)
-    os.makedirs(detected_faces_dir, exist_ok=True)
+    utils = Utils()
+    os.makedirs(utils.detected_images_dir, exist_ok=True)
+    os.makedirs(utils.detected_videos_dir, exist_ok=True)
+    os.makedirs(utils.detected_faces_dir, exist_ok=True)
     
 
-    if not os.path.exists(json_cache_file):
+    if not os.path.exists(utils.json_cache_file):
         cache_data = {"number_faces_detected": 0}
-        with open(json_cache_file, 'w', encoding='utf-8') as f:
+        with open(utils.json_cache_file, 'w', encoding='utf-8') as f:
             json.dump(cache_data, f, indent=4, ensure_ascii=False)
             
        
@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     
     
-    cameras = list_cameras()
+    cameras = utils.list_cameras()
 
     if len(cameras) == 0:
         print("No cameras detected. Exiting.")
@@ -56,11 +56,11 @@ def main():
     
     time.sleep(2)
 
-    preview_camera(cap)
+    utils.preview_camera(cap)
 
     known_face_encodings = [] 
     known_face_names = [] 
-    load_encondings(known_face_encodings, known_face_names)
+    utils.load_encondings(known_face_encodings, known_face_names)
     
     
     print("🎥 Monitoring... Press CTRL + C to exit.")
@@ -94,30 +94,27 @@ def main():
                 print(f"\033[91mMotion detected!\033[0m")
 
                 if not args.silent:
-                    trigger_alarm()
+                    utils.trigger_alarm()
                     
                 timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-                register_log()
+                utils.register_log()
                 
                 if args.modes is None or "image-only" in args.modes:
-                    image_name = f"{detected_images_dir}/capture_{timestamp_str}.jpg"
+                    image_name = f"{utils.detected_images_dir}/capture_{timestamp_str}.jpg"
                     cv2.imwrite(image_name, frame1)
                 
                 if args.modes is None or "video-only" in args.modes:
-                    record_video(cap)
+                    utils.record_video(cap)
 
                 if args.modes is None or "face-only" in args.modes:
-                    t = threading.Thread(target=detect_faces, args=(frame2, known_face_encodings, known_face_names,))
+                    t = threading.Thread(target=utils.detect_faces, args=(frame2, known_face_encodings, known_face_names,))
                     t.start()
 
                 
                 time.sleep(3)
-
-            
                 
     finally:
         cap.release()
-        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
