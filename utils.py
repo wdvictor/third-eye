@@ -15,8 +15,8 @@ class Utils:
         self.motion_log_detection_log = "motion_detection_log.txt"
         self.detected_images_dir = "detected_images"
         self.detected_videos_dir = "detected_videos"
-    
         self.json_cache_file = "cache.json"
+
 
     def init_configuration(self):
         os.makedirs(self.detected_images_dir, exist_ok=True)
