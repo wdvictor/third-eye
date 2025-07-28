@@ -10,58 +10,16 @@ import threading
 
 
 def main():
+
     utils = Utils()
-    os.makedirs(utils.detected_images_dir, exist_ok=True)
-    os.makedirs(utils.detected_videos_dir, exist_ok=True)
-    os.makedirs(utils.detected_faces_dir, exist_ok=True)
-    
 
-    if not os.path.exists(utils.json_cache_file):
-        cache_data = {"number_faces_detected": 0}
-        with open(utils.json_cache_file, 'w', encoding='utf-8') as f:
-            json.dump(cache_data, f, indent=4, ensure_ascii=False)
-            
-       
-    parser = argparse.ArgumentParser(description="Motion detection script")
-    parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only", "face-only"],)
-    parser.add_argument("--silent", action="store_true")
-    args = parser.parse_args()
-    
-    
-    cameras = utils.list_cameras()
-
-    if len(cameras) == 0:
-        print("No cameras detected. Exiting.")
-        exit(1)
-    elif len(cameras) == 1:
-        selected_camera = cameras[0]
-        print(f"Only one camera detected. Using camera index {selected_camera}.")
-    else:
-        print("Multiple cameras detected:")
-        for i, cam_idx in enumerate(cameras):
-            print(f" [{i}] Camera index {cam_idx}")
-        choice = input(f"Choose camera [0-{len(cameras)-1}]: ")
-        try:
-            choice_idx = int(choice)
-            if 0 <= choice_idx < len(cameras):
-                selected_camera = cameras[choice_idx]
-            else:
-                print("Invalid choice. Using first camera by default.")
-                selected_camera = cameras[0]
-        except:
-            print("Invalid input. Using first camera by default.")
-            selected_camera = cameras[0]
-
-    cap = cv2.VideoCapture(selected_camera)
-    
-    time.sleep(2)
-
+    args = utils.init_configuration()
+    cap = utils.select_camera()
     utils.preview_camera(cap)
 
     known_face_encodings = [] 
     known_face_names = [] 
     utils.load_encondings(known_face_encodings, known_face_names)
-    
     
     print("🎥 Monitoring... Press CTRL + C to exit.")
     try:

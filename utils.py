@@ -1,3 +1,4 @@
+import argparse
 import time
 import cv2
 import os
@@ -7,13 +8,34 @@ import json
 
 
 class Utils:
+    
     def __init__(self):
         self.detected_faces_dir = "detected_faces"
-        self.face_detection_log = "face_detection_log.text"
-        self.motion_log_detection_log = "motion_detection_log.text"
+        self.face_detection_log = "face_detection_log.txt"
+        self.motion_log_detection_log = "motion_detection_log.txt"
         self.detected_images_dir = "detected_images"
         self.detected_videos_dir = "detected_videos"
+    
         self.json_cache_file = "cache.json"
+
+    def init_configuration(self):
+        os.makedirs(self.detected_images_dir, exist_ok=True)
+        os.makedirs(self.detected_videos_dir, exist_ok=True)
+        os.makedirs(self.detected_faces_dir, exist_ok=True)
+        
+
+        if not os.path.exists(self.json_cache_file):
+            cache_data = {"number_faces_detected": 0}
+            with open(self.json_cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=4, ensure_ascii=False)
+                
+        
+        parser = argparse.ArgumentParser(description="Motion detection script")
+        parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only", "face-only"],)
+        parser.add_argument("--silent", action="store_true")
+        args = parser.parse_args()
+        return args
+
 
     def save_cache(self, json_data):
         with open(self.json_cache_file, "w", encoding="utf-8") as f:
@@ -37,6 +59,35 @@ class Utils:
                 cap.release()
         return available
 
+
+    def select_camera(self):
+        cameras = self.list_cameras()
+        if len(cameras) == 0:
+            print("No cameras detected. Exiting.")
+            exit(1)
+        elif len(cameras) == 1:
+            selected_camera = cameras[0]
+            print(f"Only one camera detected. Using camera index {selected_camera}.")
+        else:
+            print("Multiple cameras detected:")
+            for i, cam_idx in enumerate(cameras):
+                print(f" [{i}] Camera index {cam_idx}")
+            choice = input(f"Choose camera [0-{len(cameras)-1}]: ")
+
+            try:
+                choice_idx = int(choice)
+                if 0 <= choice_idx < len(cameras):
+                    selected_camera = cameras[choice_idx]
+                else:
+                    print("Invalid choice. Using first camera by default.")
+                    selected_camera = cameras[0]
+            except:
+                print("Invalid input. Using first camera by default.")
+                selected_camera = cameras[0]
+
+        cap = cv2.VideoCapture(selected_camera)
+        time.sleep(2)
+        return cap
 
     def trigger_alarm(self, times=3, interval=0.3):
         for _ in range(times):
