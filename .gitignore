@@ -9,6 +9,8 @@ detected_faces/
 face_detection_log.txt
 motion_detection_log.txt
 cache.json
+face_detection_log.json
+face_database/
 # C extensions
 *.so
 

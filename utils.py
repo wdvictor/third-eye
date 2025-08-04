@@ -31,7 +31,7 @@ class Utils:
                 
         
         parser = argparse.ArgumentParser(description="Motion detection script")
-        parser.add_argument("--modes", nargs="+", choices=["video-only", "image-only", "face-only"],)
+        parser.add_argument("--modes", nargs="+", choices=["video", "image", "face-detection"],)
         parser.add_argument("--silent", action="store_true")
         args = parser.parse_args()
         return args

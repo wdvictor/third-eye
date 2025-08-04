@@ -24,10 +24,6 @@ The system is designed for **surveillance and monitoring** and can be extended f
 - Logs saved to a text file
 - Auto-creation of output folders
 
-### 🔮 Upcoming Features
-
-- Face detection
-- shadow-detection
 
 ## 🛠️ System Requirements
 
@@ -73,8 +69,8 @@ python main.py [OPTIONS]
 
 - **`--modes`**  
   Specifies which functionalities to execute. Supports multiple values.  
-  If omitted, all modes will be enabled by default.  
-  Valid options currently include: **`video-only`**, **`image-only`**, **`face-only`**.
+  If omitted, **image** and **face** will be enabled by default.  
+  Valid options currently include: **`video`**, **`image`**, **`face-detection`**.
 
 - **`--silent`**  
   Disables the alarm sound when passed.
@@ -86,7 +82,7 @@ python main.py [OPTIONS]
 Example:
 
 ```bash
-python main.py --mode image-only --silent
+python main.py --mode image --silent
 ```
 
 This will run the motion detector saving only images and skipping the alarm sound.

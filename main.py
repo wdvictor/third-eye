@@ -4,7 +4,6 @@ import time
 import cv2
 from utils  import Utils
 from datetime import datetime
-import argparse
 import threading
 
 
@@ -57,14 +56,14 @@ def main():
                 timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
                 utils.register_log()
                 
-                if args.modes is None or "image-only" in args.modes:
+                if args.modes is None or "image" in args.modes:
                     image_name = f"{utils.detected_images_dir}/capture_{timestamp_str}.jpg"
-                    cv2.imwrite(image_name, frame1)
+                    cv2.imwrite(image_name, frame2)
                 
-                if args.modes is None or "video-only" in args.modes:
+                if "video" in args.modes:
                     utils.record_video(cap)
 
-                if args.modes is None or "face-only" in args.modes:
+                if args.modes is None or "face-detection" in args.modes:
                     t = threading.Thread(target=utils.detect_faces, args=(frame2, known_face_encodings, known_face_names,))
                     t.start()
 
