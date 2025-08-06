@@ -2,6 +2,7 @@ import json
 import os
 import time
 import cv2
+from pretty_print import MessageType, pretty_print
 from utils  import Utils
 from datetime import datetime
 import threading
@@ -11,10 +12,13 @@ import threading
 def main():
 
     utils = Utils()
-
-    args = utils.init_configuration()
     cap = utils.select_camera()
-    utils.preview_camera(cap)
+    utils.preview_and_subtract_background(cap)
+    frame_size = (int(cap.get(3)), int(cap.get(4)))
+    args, face_detection, face_recognition = utils.init_configuration(frame_size)
+
+    
+   
 
     known_face_encodings = [] 
     known_face_names = [] 
@@ -24,31 +28,15 @@ def main():
     try:
         while cap.isOpened():
 
-
-            _, frame1 = cap.read()
-            _, frame2 = cap.read()
+            _, frame1 = utils.get_frame(cap)
+            _, frame2 = utils.get_frame(cap)
             
-            diff = cv2.absdiff(frame1, frame2)
-            gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-            blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-            dilated = cv2.dilate(thresh, None, iterations=3)
-            contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-            motion_detected = False
-            
-            for contour in contours:
-                
-                if cv2.contourArea(contour) < 1000:
-                    continue
-
-                motion_detected = True
-                break
+            motion_detected = utils.detect_motion()
 
             if motion_detected:
                 now = datetime.now()
 
-                print(f"\033[91mMotion detected!\033[0m")
+                pretty_print(MessageType.ALERT.name, "Motion detected")
 
                 if not args.silent:
                     utils.trigger_alarm()
