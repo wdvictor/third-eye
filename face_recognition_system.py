@@ -10,38 +10,38 @@ import face_recognition
 class FaceRecognitionSystem:
     def __init__(self, faces_dir="detected_faces", database_dir="face_database"):
         """
-        Sistema completo de reconhecimento facial
+        Complete facial recognition system
         
         Args:
-            faces_dir: Diretório para salvar imagens das faces
-            database_dir: Diretório para salvar banco de dados de faces
+            faces_dir: Directory to save face images
+            database_dir: Directory to save face database
         """
         self.faces_dir = faces_dir
         self.database_dir = database_dir
         self.log_file = "face_detection_log.json"
         
-        # Criar diretórios se não existirem
+        
         os.makedirs(faces_dir, exist_ok=True)
         os.makedirs(database_dir, exist_ok=True)
         
-        # Banco de dados de faces conhecidas
+        
         self.known_faces = []
         self.known_names = []
         self.face_counter = 0
         
-        # Carregar faces conhecidas
+        
         self.load_known_faces()
         
-        # Inicializar detectores
+        
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         
-        print(f"✅ Sistema inicializado!")
-        print(f"📁 Faces salvas em: {faces_dir}")
-        print(f"🗃️  Database em: {database_dir}")
-        print(f"📋 Log em: {self.log_file}")
+        print(f"✅ System initialized!")
+        print(f"📁 Faces saved in: {faces_dir}")
+        print(f"🗃️  Database in: {database_dir}")
+        print(f"📋 Log in: {self.log_file}")
     
     def load_known_faces(self):
-        """Carrega faces conhecidas do banco de dados"""
+        """Loads known faces from the database"""
         database_file = os.path.join(self.database_dir, "faces_database.pkl")
         
         if os.path.exists(database_file):
@@ -51,14 +51,14 @@ class FaceRecognitionSystem:
                     self.known_faces = data.get('faces', [])
                     self.known_names = data.get('names', [])
                     self.face_counter = data.get('counter', 0)
-                print(f"📚 Carregadas {len(self.known_faces)} faces conhecidas")
+                print(f"📚 Loaded {len(self.known_faces)} known faces")
             except Exception as e:
-                print(f"⚠️  Erro ao carregar database: {e}")
+                print(f"⚠️  Error loading database: {e}")
         else:
-            print("🆕 Criando novo banco de dados de faces")
+            print("🆕 Creating new face database")
     
     def save_known_faces(self):
-        """Salva faces conhecidas no banco de dados"""
+        """Saves known faces to the database"""
         database_file = os.path.join(self.database_dir, "faces_database.pkl")
         
         try:
@@ -69,18 +69,18 @@ class FaceRecognitionSystem:
             }
             with open(database_file, 'wb') as f:
                 pickle.dump(data, f)
-            print("💾 Database salvo com sucesso")
+            print("💾 Database saved successfully")
         except Exception as e:
-            print(f"❌ Erro ao salvar database: {e}")
+            print(f"❌ Error saving database: {e}")
     
     def generate_face_name(self):
-        """Gera um nome único para uma nova face"""
+        """Generates a unique name for a new face"""
         self.face_counter += 1
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"Pessoa_{self.face_counter:03d}_{timestamp}"
+        return f"Person_{self.face_counter:03d}_{timestamp}"
     
     def log_detection(self, name, is_new_face=False, confidence=0.0):
-        """Registra detecção no log"""
+        """Logs detection in the log file"""
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "name": name,
@@ -88,7 +88,7 @@ class FaceRecognitionSystem:
             "confidence": confidence
         }
         
-        # Carregar log existente
+        # Load existing log
         log_data = []
         if os.path.exists(self.log_file):
             try:
@@ -97,28 +97,28 @@ class FaceRecognitionSystem:
             except:
                 log_data = []
         
-        # Adicionar nova entrada
+        # Add new entry
         log_data.append(log_entry)
         
-        # Salvar log
+        # Save log
         try:
             with open(self.log_file, 'w') as f:
                 json.dump(log_data, f, indent=2)
         except Exception as e:
-            print(f"❌ Erro ao salvar log: {e}")
+            print(f"❌ Error saving log: {e}")
     
     def detect_and_recognize_faces(self, frame):
         print('detect_and_recognize_faces')
         """
-        Detecta e reconhece faces no frame
+        Detects and recognizes faces in the frame
         
         Returns:
-            list: Lista de dicionários com informações das faces detectadas
+            list: List of dictionaries with information about detected faces
         """
-        # Converter para RGB (face_recognition usa RGB)
+        # Convert to RGB (face_recognition uses RGB)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        # Detectar faces usando face_recognition (mais preciso)
+        # Detect faces using face_recognition (more accurate)
         face_locations = face_recognition.face_locations(rgb_frame)
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
@@ -127,7 +127,7 @@ class FaceRecognitionSystem:
         for i, (face_encoding, face_location) in enumerate(zip(face_encodings, face_locations)):
             top, right, bottom, left = face_location
             
-            # Verificar se é uma face conhecida
+            # Check if it is a known face
             if len(self.known_faces) > 0:
                 matches = face_recognition.compare_faces(self.known_faces, face_encoding, tolerance=0.6)
                 distances = face_recognition.face_distance(self.known_faces, face_encoding)
@@ -137,48 +137,48 @@ class FaceRecognitionSystem:
                     confidence = 1 - distances[best_match_index]
                     
                     if matches[best_match_index] and confidence > 0.4:
-                        # Face conhecida
+                        # Known face
                         name = self.known_names[best_match_index]
                         is_new = False
-                        print(f"👤 Face reconhecida: {name} (confiança: {confidence:.2f})")
+                        print(f"👤 Recognized face: {name} (confidence: {confidence:.2f})")
                     else:
-                        # Nova face
+                        # New face
                         name = self.generate_face_name()
                         is_new = True
                         self.known_faces.append(face_encoding)
                         self.known_names.append(name)
                         confidence = 1.0
-                        print(f"🆕 Nova face detectada: {name}")
+                        print(f"🆕 New face detected: {name}")
                 else:
-                    # Primeira face no sistema
+                    # First face in the system
                     name = self.generate_face_name()
                     is_new = True
                     self.known_faces.append(face_encoding)
                     self.known_names.append(name)
                     confidence = 1.0
-                    print(f"🆕 Primeira face detectada: {name}")
+                    print(f"🆕 First face detected: {name}")
             else:
-                # Primeira face no sistema
+                # First face in the system
                 name = self.generate_face_name()
                 is_new = True
                 self.known_faces.append(face_encoding)
                 self.known_names.append(name)
                 confidence = 1.0
-                print(f"🆕 Primeira face detectada: {name}")
+                print(f"🆕 First face detected: {name}")
             
-            # Salvar imagem da face
+            # Save face image
             face_img = frame[top:bottom, left:right]
             if face_img.size > 0:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
                 filename = f"{name}_{timestamp}.jpg"
                 filepath = os.path.join(self.faces_dir, filename)
                 cv2.imwrite(filepath, face_img)
-                print(f"💾 Face salva: {filename}")
+                print(f"💾 Face saved: {filename}")
             
-            # Registrar no log
+            # Log detection
             self.log_detection(name, is_new, confidence)
             
-            # Adicionar à lista de faces detectadas
+            # Add to detected faces list
             detected_faces.append({
                 'name': name,
                 'location': (left, top, right, bottom),
@@ -186,7 +186,7 @@ class FaceRecognitionSystem:
                 'is_new': is_new
             })
         
-        # Salvar database se houver novas faces
+        # Save database if there are new faces
         if any(face['is_new'] for face in detected_faces):
             self.save_known_faces()
         
@@ -201,7 +201,7 @@ def get_frame(cap, scaling_factor):
     return frame
 
 def detect_motion(mask, min_area=800):
-    """Detecta movimento baseado na máscara"""
+    """Detects motion based on the mask"""
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask = cv2.dilate(mask, kernel, iterations=2)
@@ -216,165 +216,159 @@ def detect_motion(mask, min_area=800):
     return len(valid_contours) > 0, valid_contours
 
 def draw_face_info(frame, faces):
-    """Desenha informações das faces no frame"""
+    """Draws face information on the frame"""
     for face in faces:
         left, top, right, bottom = face['location']
         name = face['name']
         confidence = face['confidence']
         is_new = face['is_new']
         
-        # Cor do retângulo (verde para conhecida, azul para nova)
+        # Rectangle color (green for known, blue for new)
         color = (0, 255, 255) if is_new else (0, 255, 0)
         
-        # Desenhar retângulo
+        # Draw rectangle
         cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
         
-        # Texto com nome e confiança
+        # Text with name and confidence
         label = f"{name} ({confidence:.2f})"
         if is_new:
-            label += " [NOVA]"
+            label += " [NEW]"
         
-        # Fundo para o texto
+        # Background for text
         (text_width, text_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         cv2.rectangle(frame, (left, top - text_height - 10), (left + text_width, top), color, -1)
         
-        # Texto
+        # Text
         cv2.putText(frame, label, (left, top - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
 
 if __name__ == '__main__':
-    # Verificar se face_recognition está instalado
+    # Check if face_recognition is installed
     try:
         import face_recognition
     except ImportError:
-        print("❌ Erro: face_recognition não está instalado!")
-        print("📦 Para instalar: pip install face_recognition")
-        print("⚠️  No Windows, você pode precisar instalar: pip install cmake")
+        print("❌ Error: face_recognition is not installed!")
+        print("📦 To install: pip install face_recognition")
+        print("⚠️  On Windows, you may need to install: pip install cmake")
         exit()
     
-    # Inicializar sistema de reconhecimento facial
+
     face_system = FaceRecognitionSystem()
     
-    # Inicializar captura de vídeo
     cap = cv2.VideoCapture(0)
     
     if not cap.isOpened():
-        print("❌ Erro: Não foi possível abrir a câmera")
+        print("❌ Error: Could not open camera")
         exit()
     
-    # # Configurar câmera
-    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    # cap.set(cv2.CAP_PROP_FPS, 30)
-    
-    # Inicializar subtrator de fundo
+    # Initialize background subtractor
     bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True, history=500)
     
-    # Variáveis de controle
+    # Control variables
     last_motion_time = 0
-    motion_cooldown = 3  # Cooldown para detecção de movimento
-    face_detection_cooldown = 5  # Cooldown para detecção de faces
+    motion_cooldown = 3  # Cooldown for motion detection
+    face_detection_cooldown = 5  # Cooldown for face detection
     last_face_detection = 0
     frame_count = 0
     learning_frames = 30
     
-    print("\n🎥 SISTEMA DE RECONHECIMENTO FACIAL ATIVO!")
+    print("\n🎥 FACIAL RECOGNITION SYSTEM ACTIVE!")
     print("=" * 60)
-    print("📋 Instruções:")
-    print("   • Aguarde calibração do fundo")
-    print("   • Faça um movimento para ativar detecção facial")
-    print("   • ESC ou 'q' para sair")
-    print("   • 'r' para recalibrar")
-    print("   • 's' para salvar database manualmente")
+    print("📋 Instructions:")
+    print("   • Wait for background calibration")
+    print("   • Make a movement to activate facial detection")
+    print("   • ESC or 'q' to exit")
+    print("   • 'r' to recalibrate")
+    print("   • 's' to save database manually")
     print("=" * 60)
     
     while True:
         try:
-            frame = get_frame(cap, 0.8)
+            frame = get_frame(cap, 1)
             
             if frame is None:
-                print("❌ Erro ao capturar frame")
+                print("❌ Error capturing frame")
                 break
             
             frame_count += 1
             current_time = time.time()
             
-            # Taxa de aprendizado adaptativa
+            # Adaptive learning rate
             learning_rate = 0.1 if frame_count < learning_frames else 0.005
             
-            # Aplicar subtração de fundo
+            # Apply background subtraction
             mask = bgSubtractor.apply(frame, learningRate=learning_rate)
             
-            # Sistema ativo apenas após calibração
+            # System active only after calibration
             if frame_count > learning_frames:
-                # Detectar movimento
+                # Detect motion
                 has_motion, contours = detect_motion(mask, min_area=1000)
                 
-                # Se há movimento e passou do cooldown
+                # If there is motion and cooldown has passed
                 if has_motion and (current_time - last_motion_time) > motion_cooldown:
                     timestamp = time.strftime("%H:%M:%S", time.localtime())
-                    print(f"🚨 MOVIMENTO DETECTADO [{timestamp}] - Iniciando detecção facial...")
+                    print(f"🚨 MOTION DETECTED [{timestamp}] - Starting facial detection...")
                     last_motion_time = current_time
                     
-                    # Detectar faces se passou do cooldown de face
+                    # Detect faces if face detection cooldown has passed
                     if (current_time - last_face_detection) > face_detection_cooldown:
-                        print("🔍 Analisando faces...")
+                        print("🔍 Analyzing faces...")
                         detected_faces = face_system.detect_and_recognize_faces(frame)
                         
                         if detected_faces:
-                            print(f"✅ {len(detected_faces)} face(s) processada(s)")
-                            # Desenhar informações das faces
+                            print(f"✅ {len(detected_faces)} face(s) processed")
+                            # Draw face information
                             draw_face_info(frame, detected_faces)
                         else:
-                            print("⚠️  Movimento detectado, mas nenhuma face encontrada")
+                            print("⚠️  Motion detected, but no face found")
                         
                         last_face_detection = current_time
                     else:
                         remaining = face_detection_cooldown - (current_time - last_face_detection)
-                        print(f"⏱️  Aguarde {remaining:.1f}s para nova detecção facial")
+                        print(f"⏱️  Wait {remaining:.1f}s for next facial detection")
                 
-                # Desenhar contornos de movimento
+                # Draw motion contours
                 for contour in contours:
                     x, y, w, h = cv2.boundingRect(contour)
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 1)
             
-            # Status no frame
+            # Status on frame
             if frame_count <= learning_frames:
                 progress = int((frame_count / learning_frames) * 100)
-                cv2.putText(frame, f"Calibrando... {progress}%", (10, 30), 
+                cv2.putText(frame, f"Calibrating... {progress}%", (10, 30), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 165, 255), 2)
             else:
-                cv2.putText(frame, "SISTEMA ATIVO", (10, 30), 
+                cv2.putText(frame, "SYSTEM ACTIVE", (10, 30), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                 
-                # Info do banco de dados
-                cv2.putText(frame, f"Faces conhecidas: {len(face_system.known_faces)}", 
+                # Database info
+                cv2.putText(frame, f"Known faces: {len(face_system.known_faces)}", 
                            (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
-            # Exibir frames
-            cv2.imshow('Sistema de Reconhecimento Facial', frame)
-            cv2.imshow('Detector de Movimento', mask)
+            # Show frames
+            cv2.imshow('Facial Recognition System', frame)
+            cv2.imshow('Motion Detector', mask)
             
-            # Controles
+            # Controls
             key = cv2.waitKey(1) & 0xFF
-            if key == 27 or key == ord('q'):  # ESC ou 'q'
+            if key == 27 or key == ord('q'):  # ESC or 'q'
                 break
             elif key == ord('r'):  # Reset
                 bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True, history=500)
                 frame_count = 0
-                print("🔄 Sistema recalibrado")
-            elif key == ord('s'):  # Salvar database
+                print("🔄 System recalibrated")
+            elif key == ord('s'):  # Save database
                 face_system.save_known_faces()
-                print("💾 Database salvo manualmente")
+                print("💾 Database saved manually")
                 
         except Exception as erro:
-            print(f"❌ Erro: {erro}")
+            print(f"❌ Error: {erro}")
             break
     
-    # Finalizar
+    # Finish
     face_system.save_known_faces()
     cap.release()
     cv2.destroyAllWindows()
-    print("\n✅ Sistema finalizado com sucesso!")
-    print(f"📊 Total de faces conhecidas: {len(face_system.known_faces)}")
-    print(f"📁 Imagens salvas em: {face_system.faces_dir}")
-    print(f"📋 Log disponível em: {face_system.log_file}")
+    print("\n✅ System finished successfully!")
+    print(f"📊 Total known faces: {len(face_system.known_faces)}")
+    print(f"📁 Images saved in: {face_system.faces_dir}")
+    print(f"📋 Log available at: {face_system.log_file}")
