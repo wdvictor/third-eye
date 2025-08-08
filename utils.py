@@ -226,24 +226,24 @@ class Utils:
         return detected_faces
 
 
-    def detect_motion(self, frame, min_area=800):
+    def detect_motion(self, mask, min_area=1000):
         """Detects motion based on the mask"""
-
-        bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True, history=500)
-        mask = bgSubtractor.apply(frame, learningRate=0.1)
 
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.dilate(mask, kernel, iterations=2)
         
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        valid_contours = []
+        motion_detected = False
         for contour in contours:
+            pretty_print(MessageType.SUCCESS.name, contour)
+            pretty_print(MessageType.SUCCESS.name, cv2.contourArea(contour))
             if cv2.contourArea(contour) > min_area:
-                valid_contours.append(contour)
+                
+                motion_detected = True
         
-        return len(valid_contours) > 0, valid_contours
+        return motion_detected
 
 
     def list_cameras(self,max_test=3):
@@ -407,8 +407,7 @@ class Utils:
         
         return detected_faces
                 
-                
-
+            
     def load_encondings(self):
         
         for filename in os.listdir(self.detected_faces_dir):
@@ -423,7 +422,6 @@ class Utils:
                     self.known_names.append(filename.replace(".jpg", "").replace(".png", "").replace(".jpeg", "") )
 
         
-
     def preview_camera(self, cap):
         while True:
             _, frame = cap.read()
@@ -439,8 +437,7 @@ class Utils:
                 break
             
 
-
-    def get_frame(self, cap, scaling_factor=0.1):
+    def get_frame(self, cap, scaling_factor=1):
         _, frame = cap.read()
        
         frame = cv2.resize(frame, None, fx=scaling_factor,

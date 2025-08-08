@@ -13,6 +13,7 @@ def main():
 
     utils = Utils()
     cap = utils.select_camera()
+    bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=False, history=500)
     utils.preview_camera(cap)
     args = utils.init_configuration()
 
@@ -24,7 +25,10 @@ def main():
         while cap.isOpened():
             
             frame = utils.get_frame(cap)
-            motion_detected = utils.detect_motion(frame)
+           
+            
+            mask = bgSubtractor.apply(frame, learningRate=0.005)
+            motion_detected = utils.detect_motion(mask)
 
             if motion_detected:
                 now = datetime.now()
@@ -47,8 +51,9 @@ def main():
                     t = threading.Thread(target=utils.detect_and_recognize_faces, kwargs={'frame': frame})
                     t.start()
 
+            if motion_detected:
+                time.sleep(5)  
                 
-                time.sleep(3)
                 
     finally:
         cap.release()
