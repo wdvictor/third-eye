@@ -13,46 +13,38 @@ def main():
 
     utils = Utils()
     cap = utils.select_camera()
-    utils.preview_and_subtract_background(cap)
-    frame_size = (int(cap.get(3)), int(cap.get(4)))
-    args, face_detection, face_recognition = utils.init_configuration(frame_size)
+    utils.preview_camera(cap)
+    args = utils.init_configuration()
 
-    
-   
 
-    known_face_encodings = [] 
-    known_face_names = [] 
-    utils.load_encondings(known_face_encodings, known_face_names)
+    utils.load_encondings()
     
     print("🎥 Monitoring... Press CTRL + C to exit.")
     try:
         while cap.isOpened():
-
-            _, frame1 = utils.get_frame(cap)
-            _, frame2 = utils.get_frame(cap)
             
-            motion_detected = utils.detect_motion()
+            frame = utils.get_frame(cap)
+            motion_detected = utils.detect_motion(frame)
 
             if motion_detected:
                 now = datetime.now()
+                timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
 
                 pretty_print(MessageType.ALERT.name, "Motion detected")
 
                 if not args.silent:
                     utils.trigger_alarm()
                     
-                timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-                utils.register_log()
                 
                 if args.modes is None or "image" in args.modes:
                     image_name = f"{utils.detected_images_dir}/capture_{timestamp_str}.jpg"
-                    cv2.imwrite(image_name, frame2)
+                    cv2.imwrite(image_name, frame)
                 
-                if "video" in args.modes:
+                if args.modes is not None and  "video" in args.modes:
                     utils.record_video(cap)
 
                 if args.modes is None or "face-detection" in args.modes:
-                    t = threading.Thread(target=utils.detect_faces, args=(frame2, known_face_encodings, known_face_names,))
+                    t = threading.Thread(target=utils.detect_and_recognize_faces, kwargs={'frame': frame})
                     t.start()
 
                 

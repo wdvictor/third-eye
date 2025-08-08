@@ -48,7 +48,7 @@ class Utils:
         
         if not os.path.exists(self.log_file):
             cache_data = {"number_faces_detected": 0}
-            with open(self.json_cache_file, 'w', encoding='utf-8') as f:
+            with open(self.log_file, 'w', encoding='utf-8') as f:
                 json.dump(cache_data, f, indent=4, ensure_ascii=False)
                 
         
@@ -61,9 +61,7 @@ class Utils:
         self.known_names = []
         self.face_counter = 0
         
-        
         self.load_known_faces()
-        
         
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         
@@ -155,14 +153,14 @@ class Utils:
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         face_locations = face_recognition.face_locations(rgb_frame)
 
-        if len(face_location) == 0:
+        if len(face_locations) == 0:
             return
         
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
         detected_faces = []
         
-        for i, (face_encoding, face_location) in enumerate(zip(face_encodings, face_locations)):
-            top, right, bottom, left = face_location
+        for i, (face_encoding, face_locations) in enumerate(zip(face_encodings, face_locations)):
+            top, right, bottom, left = face_locations
             
             
             if len(self.known_faces) > 0:
@@ -228,10 +226,12 @@ class Utils:
         return detected_faces
 
 
-    def detect_motion(mask, min_area=800):
+    def detect_motion(self, frame, min_area=800):
         """Detects motion based on the mask"""
 
-       
+        bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True, history=500)
+        mask = bgSubtractor.apply(frame, learningRate=0.1)
+
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.dilate(mask, kernel, iterations=2)
@@ -314,26 +314,34 @@ class Utils:
             
         out.release()
              
+    def generate_face_name(self):
+        """Generates a unique name for a new face"""
+        self.face_counter += 1
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"Person_{self.face_counter:03d}_{timestamp}"
 
-    def detect_faces(self, frame, known_face_encodings, known_face_names):
+    def detect_and_recognize_faces(self, frame):
+        """
+        Detects and recognizes faces in the frame
         
-        cache = self.load_json_cache()
-        person_id = int(cache["number_faces_detected"])
-
+        Returns:
+            list: List of dictionaries with information about detected faces
+        """
+        
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         
         face_locations = face_recognition.face_locations(rgb_frame)
-        
-        if len(face_location) == 0:
+
+        if len(face_locations) == 0:
             return
         
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
         detected_faces = []
         
-        for i, (face_encoding, face_location) in enumerate(zip(face_encodings, face_locations)):
-            top, right, bottom, left = face_location
+        for _, (face_encoding, face_locations) in enumerate(zip(face_encodings, face_locations)):
+            top, right, bottom, left = face_locations
             
             
             if len(self.known_faces) > 0:
@@ -348,7 +356,7 @@ class Utils:
                         
                         name = self.known_names[best_match_index]
                         is_new = False
-                        pretty_print(MessageType.SUCCESS.name,f"👤 Recognized face: {name} (confidence: {confidence:.2f})")
+                        pretty_print(MessageType.ALERT.name,f"👤 Recognized face: {name} (confidence: {confidence:.2f})")
                     else:
                         
                         name = self.generate_face_name()
@@ -356,69 +364,83 @@ class Utils:
                         self.known_faces.append(face_encoding)
                         self.known_names.append(name)
                         confidence = 1.0
-                        pretty_print(MessageType.SUCCESS.name,f"🆕 New face detected: {name}")
+                        pretty_print(MessageType.ALERT.name, f"🆕 New face detected: {name}")
                 else:
-                    
+                   
                     name = self.generate_face_name()
                     is_new = True
                     self.known_faces.append(face_encoding)
                     self.known_names.append(name)
                     confidence = 1.0
-                    pretty_print(MessageType.SUCCESS.name,f"🆕 First face detected: {name}")
+                    pretty_print(MessageType.ALERT.name, f"🆕 New face detected: {name}")
             else:
-                person_id += 1
-                cache["number_faces_detected"] = person_id
-                self.save_cache(cache)
-
-                filename = f"person_{person_id}.jpg"
-                filepath = os.path.join(self.detected_faces_dir, filename)
                 
-                cv2.imwrite(filepath, frame)
+                name = self.generate_face_name()
+                is_new = True
+                self.known_faces.append(face_encoding)
+                self.known_names.append(name)
+                confidence = 1.0
+                pretty_print(MessageType.ALERT.name, f"🆕 New face detected: {name}")
+            
+          
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            filename = f"{name}_{timestamp}.jpg"
+            filepath = os.path.join(self.detected_faces_dir, filename)
 
-                self.register_log(filename=self.face_detection_log, content=f'person_{person_id} detected!')
-                known_face_encodings.append(face_encoding)
-                known_face_names.append(f"person_{person_id}")
-                return
+            cv2.imwrite(filepath, frame)
+            
+            
+            
+            self.log_detection(name, is_new, confidence)
+            
+            # Add to detected faces list
+            detected_faces.append({
+                'name': name,
+                'location': (left, top, right, bottom),
+                'confidence': confidence,
+                'is_new': is_new
+            })
+        
+        
+        if any(face['is_new'] for face in detected_faces):
+            self.save_known_faces()
+        
+        return detected_faces
+                
                 
 
-    def load_encondings(self, known_face_encodings, known_face_names):
+    def load_encondings(self):
+        
         for filename in os.listdir(self.detected_faces_dir):
+
             if filename.endswith((".jpg", ".png", ".jpeg")):
                 image_path = os.path.join(self.detected_faces_dir, filename)
                 image = face_recognition.load_image_file(image_path)
                 encodings = face_recognition.face_encodings(image, model="large")
 
                 if encodings:
-                    known_face_encodings.append(encodings[0])
-                    known_face_names.append(filename.replace(".jpg", "").replace(".png", "").replace(".jpeg", "") )
+                    self.known_faces.append(encodings[0])
+                    self.known_names.append(filename.replace(".jpg", "").replace(".png", "").replace(".jpeg", "") )
 
-        return known_face_encodings, known_face_names
+        
 
-
-    def preview_and_subtract_background(self, cap):
+    def preview_camera(self, cap):
         while True:
             _, frame = cap.read()
-            bgSubtractor = cv2.createBackgroundSubtractorMOG2(detectShadows=True, history=500)
-            mask = bgSubtractor.apply(frame, learningRate=0.1)
-            cv2.putText(frame, "Press q to start Detection", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 
-                   1, (0, 255, 255), 2)
-            cv2.putText(frame, "Press r to detect background", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 
-                   1, (0, 255, 255), 2)
-            cv2.imshow("Webcam Preview - Press 'q' to continue", frame)
-            cv2.imshow("Background detector", mask )
-           
             
+            cv2.putText(frame, "Press [Q] to start Detection", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 
+                   1, (0, 255, 255), 2)
+        
+            cv2.imshow("Webcam Preview", frame)
+          
             key = cv2.waitKey(1) & 0xFF
             if key == 27 or key == ord('q'):
                 cv2.destroyAllWindows()
                 break
-            elif key == ord('r'):
-                ask = bgSubtractor.apply(frame, learningRate=1)
-
-        return bgSubtractor
+            
 
 
-    def get_frame(cap, scaling_factor):
+    def get_frame(self, cap, scaling_factor=0.1):
         _, frame = cap.read()
        
         frame = cv2.resize(frame, None, fx=scaling_factor,
